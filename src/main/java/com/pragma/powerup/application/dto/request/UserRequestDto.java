@@ -5,12 +5,12 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ObjectRequestDto {
+public class UserRequestDto {
     private String nombre;
     private String apellido;
-    private String documento_identidad;
-    private int celular;
+    private Long documentoIdentidad;
+    private String celular;
     private String correo;
     private String clave;
-    private Long id_rol;
+    private Long idRol;
 }

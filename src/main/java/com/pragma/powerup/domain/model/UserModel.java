@@ -11,7 +11,14 @@ import lombok.Setter;
 @NoArgsConstructor
 
 
-public class ObjectModel {
+public class UserModel {
     private Long id;
-    private String name;
+    private String nombre;
+    private String apellido;
+    private Long documentoIdentidad;
+    private String celular;
+    private String correo;
+    private String clave;
+    private Long idRol;
+
 }

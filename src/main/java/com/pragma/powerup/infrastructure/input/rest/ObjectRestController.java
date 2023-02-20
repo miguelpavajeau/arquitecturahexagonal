@@ -49,5 +49,4 @@ public class ObjectRestController {
     public ResponseEntity<List<ObjectResponseDto>> getAllObjects() {
         return ResponseEntity.ok(objectHandler.getAllObjects());
     }
-
 }

@@ -11,7 +11,8 @@ import lombok.Setter;
 @NoArgsConstructor
 
 
-public class ObjectModel {
+public class RolModel {
     private Long id;
-    private String name;
+    private String nombre;
+    private String descripcion;
 }
