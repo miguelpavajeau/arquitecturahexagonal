@@ -13,7 +13,7 @@ import javax.persistence.*;
 @AllArgsConstructor
 @Getter
 @Setter
-public class RolEntity {
+public class RoleEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
     @Column(name = "id", nullable = false)

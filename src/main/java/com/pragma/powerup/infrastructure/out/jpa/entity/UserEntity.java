@@ -39,6 +39,11 @@ public class UserEntity implements Serializable {
     @Column(length = 50)
     private String clave;
 
+
     @Column(length = 10, name = "id_rol")
     private Long idRol;
+
+    @ManyToOne
+    @JoinColumn(name = "id_rol", insertable = false, updatable = false)
+    private RoleEntity role;
 }
