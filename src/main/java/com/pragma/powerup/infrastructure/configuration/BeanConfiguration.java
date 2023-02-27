@@ -31,11 +31,17 @@ public class BeanConfiguration {
     private final IUserEntityMapper userEntityMapper;
     private final IRoleRepository roleRepository;
     private final IRoleEntityMapper roleEntityMapper;
-    private final
+
+
 
     @Bean
     public IObjectPersistencePort objectPersistencePort() {
         return new ObjectJpaAdapter(objectRepository, objectEntityMapper);
+    }
+
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean

@@ -33,7 +33,9 @@ public class UserRestController {
 
     @PostMapping("/")
     public ResponseEntity<Void> saveUser(@Valid @RequestBody UserRequestDto userRequestDto) {
-        userRequestDto.getCorreo();
+        String passEncrypt = userRequestDto.getClave();
+        userRequestDto.setClave(passEncrypt);
+        //userRequestDto.getCorreo();
         userHandler.saveUser(userRequestDto);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
