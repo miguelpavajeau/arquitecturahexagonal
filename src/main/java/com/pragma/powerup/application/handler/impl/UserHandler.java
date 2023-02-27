@@ -25,8 +25,13 @@ public class UserHandler implements IUserHandler {
     @Override
     public void saveUser(UserRequestDto userRequestDto) {
         UserModel userModel = userRequestMapper.toUser(userRequestDto);
+        if (userModel.getCorreo() == null) {
+            throw new IllegalArgumentException("El correo no puede ser nulo");
+
+        }
         userServicePort.saveUser(userModel);
     }
+
     @Override
     public List<UserResponseDto> getAllUsers() {
         return userResponseMapper.toResponseList(userServicePort.getAllUsers());

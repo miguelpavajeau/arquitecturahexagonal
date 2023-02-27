@@ -14,7 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/v1/user")
@@ -23,18 +25,20 @@ public class UserRestController {
 
     private final IUserHandler userHandler;
 
-    @Operation(summary = "Add a new object")
+    @Operation(summary = "Add a new user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "User created", content = @Content),
             @ApiResponse(responseCode = "409", description = "User already exists", content = @Content)
     })
+
     @PostMapping("/")
-    public ResponseEntity<Void> saveUser(@RequestBody UserRequestDto userRequestDto) {
+    public ResponseEntity<Void> saveUser(@Valid @RequestBody UserRequestDto userRequestDto) {
+        userRequestDto.getCorreo();
         userHandler.saveUser(userRequestDto);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
-    @Operation(summary = "Get all objects")
+    @Operation(summary = "Get all users")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "All objects returned",
                     content = @Content(mediaType = "application/json",
