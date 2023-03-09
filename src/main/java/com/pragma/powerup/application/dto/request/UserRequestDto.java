@@ -1,5 +1,6 @@
 package com.pragma.powerup.application.dto.request;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.pragma.powerup.infrastructure.configuration.Constants;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,7 +17,6 @@ import static com.pragma.powerup.infrastructure.configuration.Constants.*;
 public class UserRequestDto {
     private String nombre;
     private String apellido;
-
     @NotNull(message = DOCUMENTO_IDENTIDAD)
     private Long documentoIdentidad;
     @Size(max = 13, message = CELULAR)
@@ -27,4 +27,15 @@ public class UserRequestDto {
     @NotNull(message = CLAVE)
     private String clave;
     private Long idRol;
+
+    public void setClave(String clave) {
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        String hashedPassword = passwordEncoder.encode(clave);
+        this.clave = hashedPassword;
+    }
+
+    public boolean getClave(String clave) {
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        return passwordEncoder.matches(clave, this.clave);
+    }
 }

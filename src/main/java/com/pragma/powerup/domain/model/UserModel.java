@@ -10,7 +10,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 
-
 public class UserModel {
     private Long id;
     private String nombre;
@@ -20,5 +19,4 @@ public class UserModel {
     private String correo;
     private String clave;
     private Long idRol;
-
 }

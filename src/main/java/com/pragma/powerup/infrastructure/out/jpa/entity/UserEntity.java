@@ -36,9 +36,8 @@ public class UserEntity implements Serializable {
     @Column(length = 50)
     private String correo;
 
-    @Column(length = 50)
+    @Column(length = 100)
     private String clave;
-
 
     @Column(length = 10, name = "id_rol")
     private Long idRol;

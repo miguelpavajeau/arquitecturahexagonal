@@ -27,7 +27,6 @@ public class UserHandler implements IUserHandler {
         UserModel userModel = userRequestMapper.toUser(userRequestDto);
         if (userModel.getCorreo() == null) {
             throw new IllegalArgumentException("El correo no puede ser nulo");
-
         }
         userServicePort.saveUser(userModel);
     }

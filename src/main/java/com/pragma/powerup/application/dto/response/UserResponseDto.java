@@ -12,6 +12,5 @@ public class UserResponseDto {
     private Long documentoIdentidad;
     private String celular;
     private String correo;
-    private String clave;
     private Long idRol;
 }

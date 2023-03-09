@@ -1,8 +1,15 @@
 package com.pragma.powerup.infrastructure.configuration;
 
-public class BCryptPasswordEncoder {
+import javax.validation.constraints.NotNull;
 
-    public BCryptPasswordEncoder() {
+import static com.pragma.powerup.infrastructure.configuration.Constants.CLAVE;
+
+public class BCryptPasswordEncoder {
+    public static String encode(String password) {
+        return password;
     }
 
+    public boolean matches(String clave, @NotNull(message = CLAVE) String s) {
+        return false;
+    }
 }
