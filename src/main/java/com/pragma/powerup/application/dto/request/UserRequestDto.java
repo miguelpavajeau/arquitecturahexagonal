@@ -1,9 +1,10 @@
 package com.pragma.powerup.application.dto.request;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.pragma.powerup.infrastructure.configuration.Constants;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.validator.constraints.UniqueElements;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
@@ -21,6 +22,7 @@ public class UserRequestDto {
     private Long documentoIdentidad;
     @Size(max = 13, message = CELULAR)
     private String celular;
+    @UniqueElements(message = CORREO_EXISTENTE)
     @Email(message = CORREO, regexp = Constants.EXPRESION_REGULAR_CORREO)
     @NotBlank(message = CORREO_VACIO)
     private String correo;
