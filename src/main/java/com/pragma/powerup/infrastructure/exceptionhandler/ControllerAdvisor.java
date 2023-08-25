@@ -26,8 +26,6 @@ import static com.pragma.powerup.infrastructure.configuration.Constants.CORREO_E
 @ControllerAdvice
 public class ControllerAdvisor {
 
-    private static final String MESSAGE = "message";
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> methodArgumentNotValidException(MethodArgumentNotValidException e) {
 
@@ -66,16 +64,16 @@ public class ControllerAdvisor {
         return new ResponseEntity<Map<String, Object>>(response, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> exception(Exception e) {
-
-        Exception result = (Exception) e;
-        Map<String, Object> response = new HashMap<>();
-
-        response.put("errors", CORREO_EXISTENTE);
-
-        return new ResponseEntity<Map<String, Object>>(response, HttpStatus.BAD_REQUEST);
-    }
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<Map<String, Object>> exception(Exception e) {
+//
+//        Exception result = (Exception) e;
+//        Map<String, Object> response = new HashMap<>();
+//
+//        response.put("errors", CORREO_EXISTENTE);
+//
+//        return new ResponseEntity<Map<String, Object>>(response, HttpStatus.BAD_REQUEST);
+//    }
 
 //    @ExceptionHandler(HttpMessageNotReadableException.class)
 //    public ResponseEntity<Map<String, Object>> httpMessageNotReadableException(HttpMessageNotReadableException e) {
@@ -94,4 +92,18 @@ public class ControllerAdvisor {
 //        }
 //        return new ResponseEntity<Map<String, Object>>(response, HttpStatus.BAD_REQUEST);
 //    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> exception(Exception e) {
+
+
+
+        Exception result = (Exception) e;
+        Map<String, Object> response = new HashMap<>();
+
+        //response.put("errors", CORREO_EXISTENTE);
+        response.put("errors", e.getMessage());
+
+        return new ResponseEntity<Map<String, Object>>(response, HttpStatus.BAD_REQUEST);
+    }
 }

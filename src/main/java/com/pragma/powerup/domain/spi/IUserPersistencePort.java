@@ -8,4 +8,6 @@ public interface IUserPersistencePort {
     UserModel saveUser(UserModel userModel);
 
     List<UserModel> getAllUsers();
+
+//    String getUserByEmail(String correo);
 }

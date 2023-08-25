@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/powerup
     username: root
-    password: ${Password}
+    password: ${PasswordUser}
     spring.security.user.name: admin
     spring.security.user.password: admin
 
@@ -15,5 +15,3 @@ spring:
     show-sql: true
 appDescription: "Pragma Powerup"
 appVersion: "1.0.0"
-
-

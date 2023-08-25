@@ -10,4 +10,5 @@ public interface IUserServicePort {
 
     List<UserModel> getAllUsers();
 
+//    String getUserByEmail(String correo);
 }

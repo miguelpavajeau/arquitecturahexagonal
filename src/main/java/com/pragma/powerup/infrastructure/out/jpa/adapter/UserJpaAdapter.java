@@ -19,7 +19,11 @@ public class UserJpaAdapter implements IUserPersistencePort {
 
     @Override
     public UserModel saveUser(UserModel userModel) {
+        UserEntity byCorreo = userRepository.findByCorreo(userModel.getCorreo());
         UserEntity userEntity = userRepository.save(userEntityMapper.toEntity(userModel));
+        if (byCorreo != null){
+            throw new IllegalArgumentException("El correo ya existe");
+        }
         return userEntityMapper.toUserModel(userEntity);
     }
 
