@@ -26,7 +26,7 @@ public class UserRequestDto {
     private String correo;
     @NotNull(message = CLAVE)
     private String clave;
-    private Long idRol;
+    //private Long idRol;
 
     public void setClave(String clave) {
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();

@@ -18,5 +18,5 @@ public class UserModel {
     private String celular;
     private String correo;
     private String clave;
-    private Long idRol;
+    //private Long idRol;
 }
