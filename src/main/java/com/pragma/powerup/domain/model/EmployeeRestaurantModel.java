@@ -5,14 +5,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Relación que indica a qué restaurante pertenece un empleado. */
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-
-
-public class RoleModel {
+public class EmployeeRestaurantModel {
     private Long id;
-    private String nombre;
-    private String descripcion;
+    private Long idEmpleado;
+    private Long idRestaurante;
 }

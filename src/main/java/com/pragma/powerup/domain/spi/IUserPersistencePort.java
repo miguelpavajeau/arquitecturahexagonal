@@ -7,7 +7,11 @@ import java.util.List;
 public interface IUserPersistencePort {
     UserModel saveUser(UserModel userModel);
 
+    boolean existsByCorreo(String correo);
+
     List<UserModel> getAllUsers();
 
-//    String getUserByEmail(String correo);
+    UserModel findByCorreo(String correo);
+
+    UserModel findById(Long id);
 }

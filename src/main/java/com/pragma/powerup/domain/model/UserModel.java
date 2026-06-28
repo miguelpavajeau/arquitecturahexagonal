@@ -9,7 +9,6 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-
 public class UserModel {
     private Long id;
     private String nombre;
@@ -18,5 +17,5 @@ public class UserModel {
     private String celular;
     private String correo;
     private String clave;
-    //private Long idRol;
+    private RoleModel role;
 }

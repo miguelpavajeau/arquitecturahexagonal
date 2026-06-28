@@ -5,14 +5,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Línea de un pedido: un plato y la cantidad solicitada. */
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-
-
-public class RoleModel {
+public class OrderDishModel {
     private Long id;
-    private String nombre;
-    private String descripcion;
+    private Long idPlato;
+    private Integer cantidad;
 }

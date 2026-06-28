@@ -8,7 +8,9 @@ public interface IUserServicePort {
 
     void saveUser(UserModel userModel);
 
-    List<UserModel> getAllUsers();
+    void saveEmployee(UserModel userModel, String correoPropietario);
 
-//    String getUserByEmail(String correo);
+    void saveClient(UserModel userModel);
+
+    List<UserModel> getAllUsers();
 }

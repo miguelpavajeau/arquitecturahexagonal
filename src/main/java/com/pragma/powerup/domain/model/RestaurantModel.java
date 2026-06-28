@@ -9,10 +9,12 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-
-
-public class RoleModel {
+public class RestaurantModel {
     private Long id;
     private String nombre;
-    private String descripcion;
+    private Long nit;
+    private String direccion;
+    private String telefono;
+    private String urlLogo;
+    private Long idPropietario;
 }

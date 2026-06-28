@@ -1,36 +1,55 @@
 package com.pragma.powerup.domain.usecase;
 
 import com.pragma.powerup.domain.api.IUserServicePort;
+import com.pragma.powerup.domain.exception.CorreoYaExisteException;
+import com.pragma.powerup.domain.exception.DomainException;
+import com.pragma.powerup.domain.model.EmployeeRestaurantModel;
+import com.pragma.powerup.domain.model.RestaurantModel;
+import com.pragma.powerup.domain.model.RoleModel;
 import com.pragma.powerup.domain.model.UserModel;
+import com.pragma.powerup.domain.spi.IEmployeeRestaurantPersistencePort;
+import com.pragma.powerup.domain.spi.IRestaurantPersistencePort;
+import com.pragma.powerup.domain.spi.IRolePersistencePort;
 import com.pragma.powerup.domain.spi.IUserPersistencePort;
 
 import java.util.List;
 
 public class UserUseCase implements IUserServicePort {
 
-    private final IUserPersistencePort userPersistencePort;
+    private static final String ROL_PROPIETARIO = "PROPIETARIO";
+    private static final String ROL_EMPLEADO = "EMPLEADO";
+    private static final String ROL_CLIENTE = "CLIENTE";
 
-    public UserUseCase(IUserPersistencePort userPersistencePort) {
+    private final IUserPersistencePort userPersistencePort;
+    private final IRolePersistencePort rolePersistencePort;
+    private final IRestaurantPersistencePort restaurantPersistencePort;
+    private final IEmployeeRestaurantPersistencePort employeeRestaurantPersistencePort;
+
+    public UserUseCase(IUserPersistencePort userPersistencePort, IRolePersistencePort rolePersistencePort,
+                       IRestaurantPersistencePort restaurantPersistencePort,
+                       IEmployeeRestaurantPersistencePort employeeRestaurantPersistencePort) {
         this.userPersistencePort = userPersistencePort;
+        this.rolePersistencePort = rolePersistencePort;
+        this.restaurantPersistencePort = restaurantPersistencePort;
+        this.employeeRestaurantPersistencePort = employeeRestaurantPersistencePort;
     }
 
     @Override
     public void saveUser(UserModel userModel) {
-        //Obtener usuario en base de datos donde el correo sea igual al del UserModel
-        //Si el usuario ya existe, entonces arroja una excepción UserAlreadyExistsException 400
-        //Si el usuario no existe, entonces guarda el usuario en la base de datos
-        //Obtener usuario en base de datos donde el correo sea igual al del UserModel
-        //Cada uno de los campo son obligatorios
-        if (userModel.getNombre() == null || userModel.getNombre().isEmpty()) {
-            throw new IllegalArgumentException("El nombre es obligatorio");
-        }
-        if (userModel.getApellido() == null || userModel.getApellido().isEmpty()) {
-            throw new IllegalArgumentException("El apellido es obligatorio");
-        }
-        if (userModel.getCorreo() == null || userModel.getCorreo().isEmpty()) {
-            throw new IllegalArgumentException("El correo es obligatorio");
-        }
-        userPersistencePort.saveUser(userModel);
+        assignRoleAndSave(userModel, ROL_PROPIETARIO);
+    }
+
+    @Override
+    public void saveEmployee(UserModel userModel, String correoPropietario) {
+        RestaurantModel restaurant = resolveOwnerRestaurant(correoPropietario);
+        UserModel savedEmployee = assignRoleAndSave(userModel, ROL_EMPLEADO);
+        employeeRestaurantPersistencePort.save(
+                new EmployeeRestaurantModel(null, savedEmployee.getId(), restaurant.getId()));
+    }
+
+    @Override
+    public void saveClient(UserModel userModel) {
+        assignRoleAndSave(userModel, ROL_CLIENTE);
     }
 
     @Override
@@ -38,8 +57,36 @@ public class UserUseCase implements IUserServicePort {
         return userPersistencePort.getAllUsers();
     }
 
-//    @Override
-//    public String getUserByEmail(String correo) {
-//        return null;
-//    }
+    private RestaurantModel resolveOwnerRestaurant(String correoPropietario) {
+        UserModel propietario = userPersistencePort.findByCorreo(correoPropietario);
+        if (propietario == null) {
+            throw new DomainException("No se pudo identificar al propietario autenticado");
+        }
+        RestaurantModel restaurant = restaurantPersistencePort.findByPropietarioId(propietario.getId());
+        if (restaurant == null) {
+            throw new DomainException("El propietario no tiene un restaurante registrado");
+        }
+        return restaurant;
+    }
+
+    private UserModel assignRoleAndSave(UserModel userModel, String roleName) {
+        if (userModel.getNombre() == null || userModel.getNombre().isBlank()) {
+            throw new DomainException("El nombre es obligatorio");
+        }
+        if (userModel.getApellido() == null || userModel.getApellido().isBlank()) {
+            throw new DomainException("El apellido es obligatorio");
+        }
+        if (userModel.getCorreo() == null || userModel.getCorreo().isBlank()) {
+            throw new DomainException("El correo es obligatorio");
+        }
+        if (userPersistencePort.existsByCorreo(userModel.getCorreo())) {
+            throw new CorreoYaExisteException();
+        }
+        RoleModel roleModel = rolePersistencePort.findRoleByName(roleName);
+        if (roleModel == null) {
+            throw new DomainException("El rol " + roleName + " no esta configurado en el sistema");
+        }
+        userModel.setRole(roleModel);
+        return userPersistencePort.saveUser(userModel);
+    }
 }
