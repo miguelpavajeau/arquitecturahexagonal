@@ -2,17 +2,43 @@ server:
   port: 8081
 
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
-    url: jdbc:mysql://localhost:3306/powerup
-    username: root
-    #password: ${PasswordUser}
-    password: 1088298314
-    spring.security.user.name: admin
-    spring.security.user.password: admin
+    url: ${DB_URL:jdbc:mysql://localhost:3306/powerup}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
 
+  jpa:
+    hibernate:
+      # Valor seguro por defecto. El perfil 'dev' lo sobreescribe a 'update' para
+      # generar el esquema en local. En producción usar 'validate' + migraciones.
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+    show-sql: ${JPA_SHOW_SQL:false}
+
+appDescription: "Pragma Powerup"
+appVersion: "1.0.0"
+
+jwt:
+  # Debe inyectarse por variable de entorno. Mínimo 32 caracteres (HMAC-SHA256).
+  secret: ${JWT_SECRET:}
+  expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+
+twilio:
+  # enabled=false -> los SMS solo se registran en el log (sin costo).
+  # enabled=true  -> se envían SMS reales vía Twilio (requiere las 3 credenciales).
+  enabled: ${TWILIO_ENABLED:false}
+  account-sid: ${TWILIO_ACCOUNT_SID:}
+  auth-token: ${TWILIO_AUTH_TOKEN:}
+  from-number: ${TWILIO_FROM_NUMBER:}
+
+---
+# Perfil de desarrollo local: genera el esquema automáticamente y muestra el SQL.
+spring:
+  config:
+    activate:
+      on-profile: dev
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-appDescription: "Pragma Powerup"
-appVersion: "1.0.0"
