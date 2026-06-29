@@ -1,0 +1,84 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Categorías">
+	<h1>Categorías</h1>
+	<p class="subtitle">Crea categorías y consulta las existentes.</p>
+
+	<div class="grid">
+		<section class="card">
+			<h2>Nueva categoría</h2>
+			<form id="category-form">
+				<label>Nombre<input type="text" id="name" required /></label>
+				<label>Descripción<textarea id="description" rows="3" required></textarea></label>
+				<button type="submit" class="btn">Crear categoría</button>
+			</form>
+			<p id="feedback" class="feedback"></p>
+		</section>
+
+		<section class="card">
+			<h2>Categorías existentes</h2>
+			<div id="categories-list"><p class="feedback info">Cargando…</p></div>
+		</section>
+	</div>
+
+	<script>
+		import { requireRole, createCategory, getCategories } from "../lib/api.js";
+
+		if (requireRole()) {
+			const form = document.getElementById("category-form") as HTMLFormElement;
+			const feedback = document.getElementById("feedback") as HTMLParagraphElement;
+			const button = form.querySelector("button") as HTMLButtonElement;
+			const list = document.getElementById("categories-list") as HTMLDivElement;
+			const val = (id: string) =>
+				(document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement).value;
+
+			async function loadCategories() {
+				try {
+					const categories = await getCategories();
+					if (!Array.isArray(categories) || categories.length === 0) {
+						list.innerHTML = `<p class="feedback info">No hay categorías todavía.</p>`;
+						return;
+					}
+					list.innerHTML = `
+						<table>
+							<thead><tr><th>Nombre</th><th>Descripción</th></tr></thead>
+							<tbody>
+								${categories
+									.map(
+										(c: any) =>
+											`<tr><td>${c.name ?? c.nombre ?? ""}</td><td>${c.description ?? c.descripcion ?? ""}</td></tr>`,
+									)
+									.join("")}
+							</tbody>
+						</table>`;
+				} catch (error) {
+					list.innerHTML = `<p class="feedback error">${(error as Error).message}</p>`;
+				}
+			}
+
+			form.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				feedback.className = "feedback info";
+				feedback.textContent = "Enviando…";
+				button.disabled = true;
+
+				try {
+					await createCategory({ name: val("name"), description: val("description") });
+					feedback.className = "feedback success";
+					feedback.textContent = "Categoría creada con éxito.";
+					form.reset();
+					loadCategories();
+				} catch (error) {
+					feedback.className = "feedback error";
+					feedback.textContent = (error as Error).message;
+				} finally {
+					button.disabled = false;
+				}
+			});
+
+			loadCategories();
+		}
+	</script>
+</Layout>

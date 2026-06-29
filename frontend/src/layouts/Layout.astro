@@ -1,0 +1,320 @@
+---
+interface Props {
+	title?: string;
+	/** Cuando es true, no se muestra la barra de navegación (p. ej. en login). */
+	bare?: boolean;
+}
+
+const { title = "PowerUp", bare = false } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title} · PowerUp</title>
+	</head>
+	<body>
+		{!bare && (
+			<header class="topbar">
+				<a class="brand" href="/dashboard">⚡ PowerUp</a>
+				<nav class="nav" data-nav></nav>
+				<div class="session">
+					<span class="session-user" data-session-user></span>
+					<button type="button" class="btn-ghost" data-logout>Salir</button>
+				</div>
+			</header>
+		)}
+		<main class={bare ? "shell shell--center" : "shell"}>
+			<slot />
+		</main>
+
+		<script>
+			import { getSession, clearToken } from "../lib/api.js";
+
+			// Pinta la barra de navegación según el rol del usuario logueado.
+			const nav = document.querySelector("[data-nav]");
+			const userLabel = document.querySelector("[data-session-user]");
+			const logoutBtn = document.querySelector("[data-logout]");
+
+			if (nav) {
+				const session = getSession();
+				if (!session) {
+					window.location.href = "/";
+				} else {
+					if (userLabel) {
+						userLabel.textContent = `${session.correo} · ${session.role}`;
+					}
+
+					const links: { href: string; label: string; roles?: string[] }[] = [
+						{ href: "/dashboard", label: "Inicio" },
+						{ href: "/usuarios", label: "Usuarios", roles: ["ADMINISTRADOR"] },
+						{ href: "/restaurantes", label: "Restaurantes", roles: ["ADMINISTRADOR"] },
+						{ href: "/categorias", label: "Categorías" },
+						{ href: "/platos", label: "Platos", roles: ["PROPIETARIO"] },
+						{ href: "/empleados", label: "Empleados", roles: ["PROPIETARIO"] },
+						{ href: "/restaurantes-cliente", label: "Restaurantes", roles: ["CLIENTE"] },
+						{ href: "/mi-pedido", label: "Mi pedido", roles: ["CLIENTE"] },
+						{ href: "/pedidos", label: "Pedidos", roles: ["EMPLEADO"] },
+					];
+
+					const current = window.location.pathname;
+					nav.innerHTML = links
+						.filter((link) => !link.roles || link.roles.includes(session.role))
+						.map(
+							(link) =>
+								`<a href="${link.href}" class="${current === link.href ? "active" : ""}">${link.label}</a>`,
+						)
+						.join("");
+				}
+			}
+
+			logoutBtn?.addEventListener("click", () => {
+				clearToken();
+				window.location.href = "/";
+			});
+		</script>
+
+		<style is:global>
+			:root {
+				--bg: #0f1115;
+				--surface: #181b22;
+				--surface-2: #20242e;
+				--border: #2b303b;
+				--text: #e7e9ee;
+				--muted: #9aa3b2;
+				--primary: #ff7a18;
+				--primary-600: #e96a0c;
+				--danger: #ff5c5c;
+				--success: #3ddc84;
+				--radius: 12px;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				background: var(--bg);
+				color: var(--text);
+				font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+				line-height: 1.5;
+			}
+
+			a {
+				color: var(--primary);
+				text-decoration: none;
+			}
+
+			.topbar {
+				display: flex;
+				align-items: center;
+				gap: 1.5rem;
+				padding: 0.85rem 1.5rem;
+				background: var(--surface);
+				border-bottom: 1px solid var(--border);
+				position: sticky;
+				top: 0;
+				z-index: 10;
+			}
+
+			.brand {
+				font-weight: 700;
+				font-size: 1.15rem;
+				color: var(--text);
+			}
+
+			.nav {
+				display: flex;
+				gap: 0.35rem;
+				flex: 1;
+			}
+
+			.nav a {
+				color: var(--muted);
+				padding: 0.4rem 0.75rem;
+				border-radius: 8px;
+				font-size: 0.92rem;
+			}
+
+			.nav a:hover {
+				background: var(--surface-2);
+				color: var(--text);
+			}
+
+			.nav a.active {
+				background: var(--surface-2);
+				color: var(--primary);
+			}
+
+			.session {
+				display: flex;
+				align-items: center;
+				gap: 0.75rem;
+			}
+
+			.session-user {
+				color: var(--muted);
+				font-size: 0.82rem;
+			}
+
+			.shell {
+				max-width: 960px;
+				margin: 0 auto;
+				padding: 2rem 1.5rem 4rem;
+			}
+
+			.shell--center {
+				min-height: 100vh;
+				display: grid;
+				place-items: center;
+			}
+
+			h1 {
+				margin: 0 0 0.25rem;
+				font-size: 1.6rem;
+			}
+
+			.subtitle {
+				color: var(--muted);
+				margin: 0 0 2rem;
+			}
+
+			.card {
+				background: var(--surface);
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				padding: 1.5rem;
+			}
+
+			.grid {
+				display: grid;
+				gap: 1.25rem;
+				grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+			}
+
+			.card h2 {
+				margin: 0 0 1rem;
+				font-size: 1.15rem;
+			}
+
+			label {
+				display: block;
+				margin-bottom: 1rem;
+				font-size: 0.88rem;
+				color: var(--muted);
+			}
+
+			input,
+			textarea,
+			select {
+				display: block;
+				width: 100%;
+				margin-top: 0.35rem;
+				padding: 0.6rem 0.75rem;
+				background: var(--surface-2);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				color: var(--text);
+				font-size: 0.95rem;
+				font-family: inherit;
+			}
+
+			input:focus,
+			textarea:focus,
+			select:focus {
+				outline: none;
+				border-color: var(--primary);
+			}
+
+			button {
+				cursor: pointer;
+				font-family: inherit;
+			}
+
+			.btn {
+				width: 100%;
+				padding: 0.7rem 1rem;
+				background: var(--primary);
+				color: #1a1207;
+				font-weight: 600;
+				border: none;
+				border-radius: 8px;
+				font-size: 0.95rem;
+			}
+
+			.btn:hover {
+				background: var(--primary-600);
+			}
+
+			.btn:disabled {
+				opacity: 0.6;
+				cursor: not-allowed;
+			}
+
+			.btn-ghost {
+				background: transparent;
+				border: 1px solid var(--border);
+				color: var(--muted);
+				padding: 0.4rem 0.8rem;
+				border-radius: 8px;
+				font-size: 0.85rem;
+			}
+
+			.btn-ghost:hover {
+				color: var(--text);
+				border-color: var(--muted);
+			}
+
+			.feedback {
+				margin: 0.75rem 0 0;
+				font-size: 0.88rem;
+				min-height: 1.2em;
+			}
+
+			.feedback.error {
+				color: var(--danger);
+			}
+
+			.feedback.success {
+				color: var(--success);
+			}
+
+			.feedback.info {
+				color: var(--muted);
+			}
+
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				font-size: 0.9rem;
+			}
+
+			th,
+			td {
+				text-align: left;
+				padding: 0.6rem 0.5rem;
+				border-bottom: 1px solid var(--border);
+			}
+
+			th {
+				color: var(--muted);
+				font-weight: 600;
+			}
+
+			.badge {
+				display: inline-block;
+				padding: 0.1rem 0.55rem;
+				border-radius: 999px;
+				background: var(--surface-2);
+				border: 1px solid var(--border);
+				font-size: 0.78rem;
+				color: var(--muted);
+			}
+		</style>
+	</body>
+</html>

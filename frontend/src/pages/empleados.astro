@@ -1,0 +1,64 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Empleados">
+	<h1>Empleados</h1>
+	<p class="subtitle">Registra los empleados de tu restaurante.</p>
+
+	<div class="grid">
+		<section class="card">
+			<h2>Crear empleado</h2>
+			<form id="employee-form">
+				<label>Nombre<input type="text" id="nombre" required /></label>
+				<label>Apellido<input type="text" id="apellido" required /></label>
+				<label>Documento de identidad<input type="number" id="documentoIdentidad" required /></label>
+				<label>Celular<input type="text" id="celular" placeholder="+573001112233" maxlength="13" /></label>
+				<label>Correo<input type="email" id="correo" required /></label>
+				<label>Clave<input type="password" id="clave" required /></label>
+				<button type="submit" class="btn">Crear empleado</button>
+			</form>
+			<p id="form-feedback" class="feedback"></p>
+		</section>
+	</div>
+
+	<script>
+		import { requireRole, createEmployee } from "../lib/api.js";
+
+		if (requireRole(["PROPIETARIO"])) {
+			const form = document.getElementById("employee-form") as HTMLFormElement;
+			const feedback = document.getElementById("form-feedback") as HTMLParagraphElement;
+			const button = form.querySelector("button") as HTMLButtonElement;
+
+			const val = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+
+			form.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				feedback.className = "feedback info";
+				feedback.textContent = "Enviando…";
+				button.disabled = true;
+
+				const payload = {
+					nombre: val("nombre"),
+					apellido: val("apellido"),
+					documentoIdentidad: Number(val("documentoIdentidad")),
+					celular: val("celular"),
+					correo: val("correo"),
+					clave: val("clave"),
+				};
+
+				try {
+					await createEmployee(payload);
+					feedback.className = "feedback success";
+					feedback.textContent = "Empleado creado con éxito.";
+					form.reset();
+				} catch (error) {
+					feedback.className = "feedback error";
+					feedback.textContent = (error as Error).message;
+				} finally {
+					button.disabled = false;
+				}
+			});
+		}
+	</script>
+</Layout>

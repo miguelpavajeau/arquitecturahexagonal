@@ -1,0 +1,147 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Mi pedido">
+	<h1>Mi pedido</h1>
+	<p class="subtitle">Estado de tu último pedido</p>
+
+	<div class="card" data-order>
+		<p class="empty" data-empty>No tienes pedidos recientes. <a href="/restaurantes-cliente">Explora los restaurantes</a> para hacer uno.</p>
+
+		<div data-detail hidden>
+			<div class="order-head">
+				<span class="badge" data-estado></span>
+				<span class="muted" data-fecha></span>
+			</div>
+			<table>
+				<thead><tr><th>Plato</th><th>Cantidad</th></tr></thead>
+				<tbody data-items></tbody>
+			</table>
+			<p class="pin-note" data-pin hidden></p>
+			<button type="button" class="btn-ghost danger" data-cancel hidden>Cancelar pedido</button>
+			<p class="feedback" data-feedback></p>
+		</div>
+	</div>
+
+	<script>
+		import { requireRole, cancelOrder } from "../lib/api.js";
+
+		const session = requireRole(["CLIENTE"]);
+		if (session) {
+			const emptyEl = document.querySelector("[data-empty]");
+			const detailEl = document.querySelector("[data-detail]");
+			const estadoEl = document.querySelector("[data-estado]");
+			const fechaEl = document.querySelector("[data-fecha]");
+			const itemsEl = document.querySelector("[data-items]");
+			const pinEl = document.querySelector("[data-pin]");
+			const cancelBtn = document.querySelector("[data-cancel]");
+			const feedback = document.querySelector("[data-feedback]");
+
+			const ESTADOS = {
+				PENDIENTE: "Pendiente",
+				EN_PREPARACION: "En preparación",
+				LISTO: "Listo para reclamar",
+				ENTREGADO: "Entregado",
+				CANCELADO: "Cancelado",
+			};
+
+			function readOrder() {
+				try {
+					return JSON.parse(localStorage.getItem("powerup_last_order") || "null");
+				} catch {
+					return null;
+				}
+			}
+
+			function render(order) {
+				if (!order) {
+					if (emptyEl) emptyEl.hidden = false;
+					if (detailEl) detailEl.hidden = true;
+					return;
+				}
+				if (emptyEl) emptyEl.hidden = true;
+				if (detailEl) detailEl.hidden = false;
+				if (estadoEl) estadoEl.textContent = ESTADOS[order.estado] ?? order.estado;
+				if (fechaEl && order.fecha) {
+					fechaEl.textContent = new Date(order.fecha).toLocaleString("es-CO");
+				}
+				if (itemsEl) {
+					itemsEl.innerHTML = (order.platos || [])
+						.map((p) => `<tr><td>Plato #${p.idPlato}</td><td>${p.cantidad}</td></tr>`)
+						.join("");
+				}
+				if (pinEl) {
+					if (order.estado === "LISTO" && order.pin) {
+						pinEl.hidden = false;
+						pinEl.textContent = `Tu PIN para reclamar el pedido es: ${order.pin}`;
+					} else {
+						pinEl.hidden = true;
+					}
+				}
+				if (cancelBtn) cancelBtn.hidden = order.estado !== "PENDIENTE";
+			}
+
+			cancelBtn?.addEventListener("click", async () => {
+				const order = readOrder();
+				if (!order) return;
+				cancelBtn.disabled = true;
+				if (feedback) {
+					feedback.textContent = "Cancelando…";
+					feedback.className = "feedback info";
+				}
+				try {
+					const updated = await cancelOrder(order.id);
+					localStorage.setItem("powerup_last_order", JSON.stringify(updated));
+					render(updated);
+					if (feedback) {
+						feedback.textContent = "Pedido cancelado.";
+						feedback.className = "feedback success";
+					}
+				} catch (err) {
+					if (feedback) {
+						feedback.textContent = err.message;
+						feedback.className = "feedback error";
+					}
+					cancelBtn.disabled = false;
+				}
+			});
+
+			render(readOrder());
+		}
+	</script>
+
+	<style>
+		.empty {
+			color: var(--muted);
+		}
+		.order-head {
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+			margin-bottom: 1rem;
+		}
+		.muted {
+			color: var(--muted);
+			font-size: 0.85rem;
+		}
+		.pin-note {
+			margin: 1rem 0;
+			padding: 0.75rem 1rem;
+			background: var(--surface-2);
+			border: 1px solid var(--primary);
+			border-radius: 8px;
+			color: var(--primary);
+			font-weight: 600;
+		}
+		.danger {
+			margin-top: 1rem;
+			border-color: var(--danger);
+			color: var(--danger);
+		}
+		.danger:hover {
+			background: var(--danger);
+			color: #1a0707;
+		}
+	</style>
+</Layout>

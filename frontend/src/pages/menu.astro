@@ -1,0 +1,386 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Menú">
+	<a class="back" href="/restaurantes-cliente">← Restaurantes</a>
+	<h1 data-resto-name>Menú</h1>
+	<p class="subtitle">Agrega platos a tu pedido</p>
+
+	<div class="menu-layout">
+		<div class="menu-main">
+			<label class="filter">
+				Filtrar por categoría
+				<select data-category>
+					<option value="">Todas las categorías</option>
+				</select>
+			</label>
+
+			<div class="dishes" data-list></div>
+			<p class="feedback" data-feedback></p>
+
+			<div class="pager" data-pager hidden>
+				<button type="button" class="btn-ghost" data-prev>← Anterior</button>
+				<span class="page-info" data-page-info></span>
+				<button type="button" class="btn-ghost" data-next>Siguiente →</button>
+			</div>
+		</div>
+
+		<aside class="card cart">
+			<h2>🧾 Mi pedido</h2>
+			<div data-cart-items><p class="empty">Aún no has agregado platos.</p></div>
+			<p class="cart-total">Total: <span data-cart-total>$0</span></p>
+			<button type="button" class="btn" data-place-order disabled>Realizar pedido</button>
+			<p class="feedback" data-order-feedback></p>
+		</aside>
+	</div>
+
+	<script>
+		import { requireRole, listDishesByRestaurant, getCategories, createOrder } from "../lib/api.js";
+
+		const session = requireRole(["CLIENTE"]);
+		if (session) {
+			const params = new URLSearchParams(window.location.search);
+			const restaurantId = params.get("id");
+			const restaurantName = params.get("nombre");
+
+			const nameEl = document.querySelector("[data-resto-name]");
+			const categorySel = document.querySelector("[data-category]");
+			const list = document.querySelector("[data-list]");
+			const feedback = document.querySelector("[data-feedback]");
+			const pager = document.querySelector("[data-pager]");
+			const pageInfo = document.querySelector("[data-page-info]");
+			const prevBtn = document.querySelector("[data-prev]");
+			const nextBtn = document.querySelector("[data-next]");
+			const cartItemsEl = document.querySelector("[data-cart-items]");
+			const cartTotalEl = document.querySelector("[data-cart-total]");
+			const placeBtn = document.querySelector("[data-place-order]");
+			const orderFeedback = document.querySelector("[data-order-feedback]");
+
+			if (nameEl && restaurantName) nameEl.textContent = restaurantName;
+
+			const SIZE = 5;
+			let page = 0;
+			let totalPages = 1;
+			const cart = new Map(); // id -> { nombre, precio, cantidad }
+
+			if (!restaurantId) {
+				if (feedback) {
+					feedback.textContent = "Restaurante no especificado.";
+					feedback.className = "feedback error";
+				}
+			} else {
+				loadCategories();
+				load();
+			}
+
+			async function loadCategories() {
+				try {
+					const categories = await getCategories();
+					if (categorySel) {
+						categorySel.insertAdjacentHTML(
+							"beforeend",
+							categories
+								.map((c) => `<option value="${c.id}">${c.nombre ?? c.name ?? ""}</option>`)
+								.join(""),
+						);
+					}
+				} catch {
+					/* el filtro es opcional; si falla, se omite */
+				}
+			}
+
+			async function load() {
+				if (feedback) {
+					feedback.textContent = "Cargando…";
+					feedback.className = "feedback info";
+				}
+				try {
+					const categoryId = categorySel?.value || undefined;
+					const data = await listDishesByRestaurant(restaurantId, { categoryId, page, size: SIZE });
+					totalPages = data.totalPages || 1;
+					render(data.content || []);
+					if (feedback && (data.content || []).length) feedback.textContent = "";
+				} catch (err) {
+					if (feedback) {
+						feedback.textContent = err.message;
+						feedback.className = "feedback error";
+					}
+				}
+			}
+
+			function render(dishes) {
+				if (!list) return;
+				if (dishes.length === 0) {
+					list.innerHTML = "";
+					if (feedback) {
+						feedback.textContent = "No hay platos para mostrar.";
+						feedback.className = "feedback info";
+					}
+					if (pager) pager.hidden = true;
+					return;
+				}
+				list.innerHTML = dishes
+					.map(
+						(d) => `
+							<article class="dish card">
+								<img src="${d.urlImagen}" alt="${d.nombre}" onerror="this.style.display='none'" />
+								<div class="dish-body">
+									<div class="dish-head">
+										<h2>${d.nombre}</h2>
+										<span class="price">$${Number(d.precio).toLocaleString("es-CO")}</span>
+									</div>
+									<span class="badge">${d.categoria}</span>
+									<p class="dish-desc">${d.descripcion}</p>
+									<button type="button" class="btn add-btn"
+										data-add data-id="${d.id}" data-nombre="${d.nombre}" data-precio="${d.precio}">
+										Agregar al pedido
+									</button>
+								</div>
+							</article>`,
+					)
+					.join("");
+
+				if (pager && pageInfo) {
+					pager.hidden = totalPages <= 1;
+					pageInfo.textContent = `Página ${page + 1} de ${totalPages}`;
+					if (prevBtn) prevBtn.disabled = page <= 0;
+					if (nextBtn) nextBtn.disabled = page >= totalPages - 1;
+				}
+			}
+
+			// ----- carrito -----
+			function addToCart(id, nombre, precio) {
+				const existing = cart.get(id);
+				if (existing) existing.cantidad += 1;
+				else cart.set(id, { nombre, precio, cantidad: 1 });
+				renderCart();
+			}
+
+			function changeQty(id, delta) {
+				const item = cart.get(id);
+				if (!item) return;
+				item.cantidad += delta;
+				if (item.cantidad <= 0) cart.delete(id);
+				renderCart();
+			}
+
+			function renderCart() {
+				if (!cartItemsEl) return;
+				if (cart.size === 0) {
+					cartItemsEl.innerHTML = `<p class="empty">Aún no has agregado platos.</p>`;
+					if (cartTotalEl) cartTotalEl.textContent = "$0";
+					if (placeBtn) placeBtn.disabled = true;
+					return;
+				}
+				let total = 0;
+				const rows = [];
+				for (const [id, item] of cart) {
+					total += item.precio * item.cantidad;
+					rows.push(`
+						<div class="cart-row">
+							<span class="cart-name">${item.nombre}</span>
+							<span class="cart-controls">
+								<button type="button" class="qty" data-dec data-id="${id}">−</button>
+								<span class="qty-val">${item.cantidad}</span>
+								<button type="button" class="qty" data-inc data-id="${id}">+</button>
+							</span>
+						</div>`);
+				}
+				cartItemsEl.innerHTML = rows.join("");
+				if (cartTotalEl) cartTotalEl.textContent = `$${total.toLocaleString("es-CO")}`;
+				if (placeBtn) placeBtn.disabled = false;
+			}
+
+			// delegación de eventos
+			list?.addEventListener("click", (e) => {
+				const btn = e.target.closest("[data-add]");
+				if (!btn) return;
+				addToCart(Number(btn.dataset.id), btn.dataset.nombre, Number(btn.dataset.precio));
+			});
+			cartItemsEl?.addEventListener("click", (e) => {
+				const inc = e.target.closest("[data-inc]");
+				const dec = e.target.closest("[data-dec]");
+				if (inc) changeQty(Number(inc.dataset.id), 1);
+				if (dec) changeQty(Number(dec.dataset.id), -1);
+			});
+
+			placeBtn?.addEventListener("click", async () => {
+				if (cart.size === 0) return;
+				placeBtn.disabled = true;
+				if (orderFeedback) {
+					orderFeedback.textContent = "Enviando pedido…";
+					orderFeedback.className = "feedback info";
+				}
+				const platos = Array.from(cart.entries()).map(([idPlato, item]) => ({
+					idPlato,
+					cantidad: item.cantidad,
+				}));
+				try {
+					const order = await createOrder({ idRestaurante: Number(restaurantId), platos });
+					localStorage.setItem("powerup_last_order", JSON.stringify(order));
+					if (orderFeedback) {
+						orderFeedback.textContent = "¡Pedido realizado! Redirigiendo…";
+						orderFeedback.className = "feedback success";
+					}
+					setTimeout(() => (window.location.href = "/mi-pedido"), 1200);
+				} catch (err) {
+					if (orderFeedback) {
+						orderFeedback.textContent = err.message;
+						orderFeedback.className = "feedback error";
+					}
+					placeBtn.disabled = false;
+				}
+			});
+
+			categorySel?.addEventListener("change", () => {
+				page = 0;
+				load();
+			});
+			prevBtn?.addEventListener("click", () => {
+				if (page > 0) {
+					page--;
+					load();
+				}
+			});
+			nextBtn?.addEventListener("click", () => {
+				if (page < totalPages - 1) {
+					page++;
+					load();
+				}
+			});
+		}
+	</script>
+
+	<style>
+		.back {
+			display: inline-block;
+			margin-bottom: 0.75rem;
+			font-size: 0.88rem;
+			color: var(--muted);
+		}
+		.back:hover {
+			color: var(--primary);
+		}
+		.menu-layout {
+			display: grid;
+			grid-template-columns: 1fr 300px;
+			gap: 1.5rem;
+			align-items: start;
+		}
+		@media (max-width: 760px) {
+			.menu-layout {
+				grid-template-columns: 1fr;
+			}
+		}
+		.filter {
+			max-width: 320px;
+		}
+		.dishes {
+			display: grid;
+			gap: 1rem;
+		}
+		.dish {
+			display: flex;
+			gap: 1rem;
+			padding: 1rem;
+		}
+		.dish img {
+			width: 96px;
+			height: 96px;
+			object-fit: cover;
+			border-radius: 8px;
+			border: 1px solid var(--border);
+			background: var(--surface-2);
+			flex-shrink: 0;
+		}
+		.dish-body {
+			flex: 1;
+		}
+		.dish-head {
+			display: flex;
+			align-items: baseline;
+			justify-content: space-between;
+			gap: 1rem;
+		}
+		.dish-head h2 {
+			margin: 0;
+			font-size: 1.1rem;
+		}
+		.price {
+			color: var(--primary);
+			font-weight: 700;
+			white-space: nowrap;
+		}
+		.dish-desc {
+			color: var(--muted);
+			margin: 0.5rem 0 0.75rem;
+			font-size: 0.9rem;
+		}
+		.add-btn {
+			width: auto;
+			padding: 0.45rem 0.9rem;
+			font-size: 0.85rem;
+		}
+		.cart {
+			position: sticky;
+			top: 1.5rem;
+		}
+		.cart .empty {
+			color: var(--muted);
+			font-size: 0.88rem;
+		}
+		.cart-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.5rem;
+			padding: 0.4rem 0;
+			border-bottom: 1px solid var(--border);
+		}
+		.cart-name {
+			font-size: 0.9rem;
+		}
+		.cart-controls {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		.qty {
+			width: 26px;
+			height: 26px;
+			border-radius: 6px;
+			border: 1px solid var(--border);
+			background: var(--surface-2);
+			color: var(--text);
+			font-size: 1rem;
+			line-height: 1;
+		}
+		.qty:hover {
+			border-color: var(--primary);
+		}
+		.qty-val {
+			min-width: 1.2rem;
+			text-align: center;
+			font-size: 0.9rem;
+		}
+		.cart-total {
+			margin: 1rem 0;
+			font-weight: 600;
+		}
+		.cart-total span {
+			color: var(--primary);
+		}
+		.pager {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 1rem;
+			margin-top: 1.75rem;
+		}
+		.page-info {
+			color: var(--muted);
+			font-size: 0.88rem;
+		}
+	</style>
+</Layout>

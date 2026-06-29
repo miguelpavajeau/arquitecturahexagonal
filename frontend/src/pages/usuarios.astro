@@ -1,0 +1,104 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Usuarios">
+	<h1>Usuarios</h1>
+	<p class="subtitle">Registra propietarios y consulta los usuarios del sistema.</p>
+
+	<div class="grid">
+		<section class="card">
+			<h2>Crear propietario</h2>
+			<form id="user-form">
+				<label>Nombre<input type="text" id="nombre" required /></label>
+				<label>Apellido<input type="text" id="apellido" required /></label>
+				<label>Documento de identidad<input type="number" id="documentoIdentidad" required /></label>
+				<label>Celular<input type="text" id="celular" placeholder="+573001112233" maxlength="13" /></label>
+				<label>Correo<input type="email" id="correo" required /></label>
+				<label>Clave<input type="password" id="clave" required /></label>
+				<button type="submit" class="btn">Crear propietario</button>
+			</form>
+			<p id="form-feedback" class="feedback"></p>
+		</section>
+
+		<section class="card">
+			<h2>Usuarios registrados</h2>
+			<div id="users-table">
+				<p class="feedback info">Cargando…</p>
+			</div>
+		</section>
+	</div>
+
+	<script>
+		import { requireRole, createUser, getUsers } from "../lib/api.js";
+
+		if (requireRole(["ADMINISTRADOR"])) {
+			const form = document.getElementById("user-form") as HTMLFormElement;
+			const feedback = document.getElementById("form-feedback") as HTMLParagraphElement;
+			const button = form.querySelector("button") as HTMLButtonElement;
+			const tableContainer = document.getElementById("users-table") as HTMLDivElement;
+
+			const val = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+
+			async function loadUsers() {
+				try {
+					const users = await getUsers();
+					if (!Array.isArray(users) || users.length === 0) {
+						tableContainer.innerHTML = `<p class="feedback info">No hay usuarios todavía.</p>`;
+						return;
+					}
+					tableContainer.innerHTML = `
+						<p class="feedback info">Usa el <strong>ID</strong> de un propietario en el formulario de restaurantes.</p>
+						<table>
+							<thead><tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Rol</th></tr></thead>
+							<tbody>
+								${users
+									.map(
+										(u: any) => `<tr>
+											<td><span class="badge">${u.id ?? "—"}</span></td>
+											<td>${u.nombre ?? ""} ${u.apellido ?? ""}</td>
+											<td>${u.correo ?? ""}</td>
+											<td><span class="badge">${u.rol ?? "—"}</span></td>
+										</tr>`,
+									)
+									.join("")}
+							</tbody>
+						</table>`;
+				} catch (error) {
+					tableContainer.innerHTML = `<p class="feedback error">${(error as Error).message}</p>`;
+				}
+			}
+
+			form.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				feedback.className = "feedback info";
+				feedback.textContent = "Enviando…";
+				button.disabled = true;
+
+				const payload = {
+					nombre: val("nombre"),
+					apellido: val("apellido"),
+					documentoIdentidad: Number(val("documentoIdentidad")),
+					celular: val("celular"),
+					correo: val("correo"),
+					clave: val("clave"),
+				};
+
+				try {
+					await createUser(payload);
+					feedback.className = "feedback success";
+					feedback.textContent = "Propietario creado con éxito.";
+					form.reset();
+					loadUsers();
+				} catch (error) {
+					feedback.className = "feedback error";
+					feedback.textContent = (error as Error).message;
+				} finally {
+					button.disabled = false;
+				}
+			});
+
+			loadUsers();
+		}
+	</script>
+</Layout>

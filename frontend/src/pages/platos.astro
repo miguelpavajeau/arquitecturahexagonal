@@ -1,0 +1,145 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Platos">
+	<h1>Platos</h1>
+	<p class="subtitle">Crea platos nuevos y actualiza el precio o la descripción de los existentes.</p>
+
+	<div class="grid">
+		<section class="card">
+			<h2>Crear plato</h2>
+			<form id="dish-form">
+				<label>Nombre<input type="text" id="nombre" required /></label>
+				<label>Precio<input type="number" id="precio" min="1" required /></label>
+				<label>Descripción<textarea id="descripcion" rows="2" required></textarea></label>
+				<label>URL de la imagen<input type="text" id="urlImagen" placeholder="https://… o ruta de la imagen" required /></label>
+				<label>Id de categoría<input type="number" id="idCategoria" required /></label>
+				<label>Id de restaurante<input type="number" id="idRestaurante" required /></label>
+				<button type="submit" class="btn">Crear plato</button>
+			</form>
+			<p id="create-feedback" class="feedback"></p>
+		</section>
+
+		<section class="card">
+			<h2>Actualizar plato</h2>
+			<form id="update-form">
+				<label>Id del plato<input type="number" id="dishId" required /></label>
+				<label>Nuevo precio<input type="number" id="nuevoPrecio" min="1" required /></label>
+				<label>Nueva descripción<textarea id="nuevaDescripcion" rows="2" required></textarea></label>
+				<button type="submit" class="btn">Actualizar plato</button>
+			</form>
+			<p id="update-feedback" class="feedback"></p>
+		</section>
+
+		<section class="card">
+			<h2>Habilitar / Deshabilitar plato</h2>
+			<form id="status-form">
+				<label>Id del plato<input type="number" id="statusDishId" required /></label>
+				<label>Estado
+					<select id="statusActivo">
+						<option value="true">Habilitado</option>
+						<option value="false">Deshabilitado</option>
+					</select>
+				</label>
+				<button type="submit" class="btn">Actualizar estado</button>
+			</form>
+			<p id="status-feedback" class="feedback"></p>
+		</section>
+	</div>
+
+	<script>
+		import { requireRole, createDish, updateDish, changeDishStatus } from "../lib/api.js";
+
+		if (requireRole(["PROPIETARIO"])) {
+			const val = (id: string) =>
+				(document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value;
+
+			// --- Crear plato ---
+			const createForm = document.getElementById("dish-form") as HTMLFormElement;
+			const createFeedback = document.getElementById("create-feedback") as HTMLParagraphElement;
+			const createBtn = createForm.querySelector("button") as HTMLButtonElement;
+
+			createForm.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				createFeedback.className = "feedback info";
+				createFeedback.textContent = "Enviando…";
+				createBtn.disabled = true;
+
+				const payload = {
+					nombre: val("nombre"),
+					precio: Number(val("precio")),
+					descripcion: val("descripcion"),
+					urlImagen: val("urlImagen"),
+					idCategoria: Number(val("idCategoria")),
+					idRestaurante: Number(val("idRestaurante")),
+				};
+
+				try {
+					await createDish(payload);
+					createFeedback.className = "feedback success";
+					createFeedback.textContent = "Plato creado con éxito.";
+					createForm.reset();
+				} catch (error) {
+					createFeedback.className = "feedback error";
+					createFeedback.textContent = (error as Error).message;
+				} finally {
+					createBtn.disabled = false;
+				}
+			});
+
+			// --- Actualizar plato ---
+			const updateForm = document.getElementById("update-form") as HTMLFormElement;
+			const updateFeedback = document.getElementById("update-feedback") as HTMLParagraphElement;
+			const updateBtn = updateForm.querySelector("button") as HTMLButtonElement;
+
+			updateForm.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				updateFeedback.className = "feedback info";
+				updateFeedback.textContent = "Enviando…";
+				updateBtn.disabled = true;
+
+				try {
+					await updateDish(Number(val("dishId")), {
+						precio: Number(val("nuevoPrecio")),
+						descripcion: val("nuevaDescripcion"),
+					});
+					updateFeedback.className = "feedback success";
+					updateFeedback.textContent = "Plato actualizado con éxito.";
+					updateForm.reset();
+				} catch (error) {
+					updateFeedback.className = "feedback error";
+					updateFeedback.textContent = (error as Error).message;
+				} finally {
+					updateBtn.disabled = false;
+				}
+			});
+
+			// --- Habilitar / Deshabilitar plato ---
+			const statusForm = document.getElementById("status-form") as HTMLFormElement;
+			const statusFeedback = document.getElementById("status-feedback") as HTMLParagraphElement;
+			const statusBtn = statusForm.querySelector("button") as HTMLButtonElement;
+
+			statusForm.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				statusFeedback.className = "feedback info";
+				statusFeedback.textContent = "Enviando…";
+				statusBtn.disabled = true;
+
+				const activo = val("statusActivo") === "true";
+
+				try {
+					await changeDishStatus(Number(val("statusDishId")), activo);
+					statusFeedback.className = "feedback success";
+					statusFeedback.textContent = `Plato ${activo ? "habilitado" : "deshabilitado"} con éxito.`;
+					statusForm.reset();
+				} catch (error) {
+					statusFeedback.className = "feedback error";
+					statusFeedback.textContent = (error as Error).message;
+				} finally {
+					statusBtn.disabled = false;
+				}
+			});
+		}
+	</script>
+</Layout>

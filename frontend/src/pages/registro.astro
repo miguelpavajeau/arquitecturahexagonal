@@ -1,0 +1,85 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Crear cuenta" bare>
+	<div class="register">
+		<div class="register-brand">⚡ PowerUp</div>
+		<div class="card">
+			<h1>Crear cuenta</h1>
+			<p class="subtitle">Regístrate como cliente</p>
+			<form id="client-form">
+				<label>Nombre<input type="text" id="nombre" required /></label>
+				<label>Apellido<input type="text" id="apellido" required /></label>
+				<label>Documento de identidad<input type="number" id="documentoIdentidad" required /></label>
+				<label>Celular<input type="text" id="celular" placeholder="+573001112233" maxlength="13" /></label>
+				<label>Correo<input type="email" id="correo" autocomplete="username" required /></label>
+				<label>Clave<input type="password" id="clave" autocomplete="new-password" required /></label>
+				<button type="submit" class="btn">Crear cuenta</button>
+			</form>
+			<p id="feedback" class="feedback"></p>
+			<p class="alt"><a href="/">Ya tengo cuenta · Iniciar sesión</a></p>
+		</div>
+	</div>
+
+	<script>
+		import { createClient, getSession } from "../lib/api.js";
+
+		// Si ya hay sesión válida, no tiene sentido mostrar el registro.
+		if (getSession()) {
+			window.location.href = "/dashboard";
+		}
+
+		const form = document.getElementById("client-form") as HTMLFormElement;
+		const feedback = document.getElementById("feedback") as HTMLParagraphElement;
+		const button = form.querySelector("button") as HTMLButtonElement;
+
+		const val = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+
+		form.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			feedback.className = "feedback info";
+			feedback.textContent = "Enviando…";
+			button.disabled = true;
+
+			const payload = {
+				nombre: val("nombre"),
+				apellido: val("apellido"),
+				documentoIdentidad: Number(val("documentoIdentidad")),
+				celular: val("celular"),
+				correo: val("correo"),
+				clave: val("clave"),
+			};
+
+			try {
+				await createClient(payload);
+				feedback.className = "feedback success";
+				feedback.textContent = "Cuenta creada. Redirigiendo al inicio de sesión…";
+				form.reset();
+				setTimeout(() => (window.location.href = "/"), 1500);
+			} catch (error) {
+				feedback.className = "feedback error";
+				feedback.textContent = (error as Error).message;
+				button.disabled = false;
+			}
+		});
+	</script>
+
+	<style>
+		.register {
+			width: 100%;
+			max-width: 420px;
+		}
+		.register-brand {
+			text-align: center;
+			font-size: 1.5rem;
+			font-weight: 700;
+			margin-bottom: 1.25rem;
+		}
+		.alt {
+			margin: 1rem 0 0;
+			text-align: center;
+			font-size: 0.88rem;
+		}
+	</style>
+</Layout>

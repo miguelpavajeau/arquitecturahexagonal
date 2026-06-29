@@ -1,0 +1,213 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Pedidos">
+	<h1>Pedidos</h1>
+	<p class="subtitle">Gestiona los pedidos de tu restaurante</p>
+
+	<label class="filter">
+		Filtrar por estado
+		<select data-filter>
+			<option value="">Todos</option>
+			<option value="PENDIENTE">Pendiente</option>
+			<option value="EN_PREPARACION">En preparación</option>
+			<option value="LISTO">Listo</option>
+			<option value="ENTREGADO">Entregado</option>
+			<option value="CANCELADO">Cancelado</option>
+		</select>
+	</label>
+
+	<div class="card">
+		<table>
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>Cliente</th>
+					<th>Fecha</th>
+					<th>Estado</th>
+					<th>Chef</th>
+					<th>Platos</th>
+					<th>Acción</th>
+				</tr>
+			</thead>
+			<tbody data-rows></tbody>
+		</table>
+		<p class="feedback" data-feedback></p>
+
+		<div class="pager" data-pager hidden>
+			<button type="button" class="btn-ghost" data-prev>← Anterior</button>
+			<span class="page-info" data-page-info></span>
+			<button type="button" class="btn-ghost" data-next>Siguiente →</button>
+		</div>
+	</div>
+
+	<script>
+		import { requireRole, listOrders, assignOrder, markOrderReady, deliverOrder } from "../lib/api.js";
+
+		const session = requireRole(["EMPLEADO"]);
+		if (session) {
+			const filterSel = document.querySelector("[data-filter]");
+			const rowsEl = document.querySelector("[data-rows]");
+			const feedback = document.querySelector("[data-feedback]");
+			const pager = document.querySelector("[data-pager]");
+			const pageInfo = document.querySelector("[data-page-info]");
+			const prevBtn = document.querySelector("[data-prev]");
+			const nextBtn = document.querySelector("[data-next]");
+
+			const ESTADOS = {
+				PENDIENTE: "Pendiente",
+				EN_PREPARACION: "En preparación",
+				LISTO: "Listo",
+				ENTREGADO: "Entregado",
+				CANCELADO: "Cancelado",
+			};
+
+			const SIZE = 10;
+			let page = 0;
+			let totalPages = 1;
+
+			async function load() {
+				if (feedback) {
+					feedback.textContent = "Cargando…";
+					feedback.className = "feedback info";
+				}
+				try {
+					const estado = filterSel?.value || undefined;
+					const data = await listOrders({ estado, page, size: SIZE });
+					totalPages = data.totalPages || 1;
+					render(data.content || []);
+					if (feedback && (data.content || []).length) feedback.textContent = "";
+				} catch (err) {
+					if (feedback) {
+						feedback.textContent = err.message;
+						feedback.className = "feedback error";
+					}
+				}
+			}
+
+			function actionFor(order) {
+				switch (order.estado) {
+					case "PENDIENTE":
+						return `<button type="button" class="btn-ghost act" data-assign data-id="${order.id}">Asignarme</button>`;
+					case "EN_PREPARACION":
+						return `<button type="button" class="btn-ghost act" data-ready data-id="${order.id}">Marcar listo</button>`;
+					case "LISTO":
+						return `<button type="button" class="btn-ghost act" data-deliver data-id="${order.id}">Entregar</button>`;
+					default:
+						return `<span class="muted">—</span>`;
+				}
+			}
+
+			function render(orders) {
+				if (!rowsEl) return;
+				if (orders.length === 0) {
+					rowsEl.innerHTML = "";
+					if (feedback) {
+						feedback.textContent = "No hay pedidos para este filtro.";
+						feedback.className = "feedback info";
+					}
+					if (pager) pager.hidden = true;
+					return;
+				}
+				rowsEl.innerHTML = orders
+					.map((o) => {
+						const totalPlatos = (o.platos || []).reduce((s, p) => s + p.cantidad, 0);
+						const fecha = o.fecha ? new Date(o.fecha).toLocaleString("es-CO") : "";
+						return `
+							<tr>
+								<td>${o.id}</td>
+								<td>${o.idCliente}</td>
+								<td>${fecha}</td>
+								<td><span class="badge">${ESTADOS[o.estado] ?? o.estado}</span></td>
+								<td>${o.idChef ?? "—"}</td>
+								<td>${totalPlatos}</td>
+								<td>${actionFor(o)}</td>
+							</tr>`;
+					})
+					.join("");
+
+				if (pager && pageInfo) {
+					pager.hidden = totalPages <= 1;
+					pageInfo.textContent = `Página ${page + 1} de ${totalPages}`;
+					if (prevBtn) prevBtn.disabled = page <= 0;
+					if (nextBtn) nextBtn.disabled = page >= totalPages - 1;
+				}
+			}
+
+			async function runAction(fn, label) {
+				if (feedback) {
+					feedback.textContent = `${label}…`;
+					feedback.className = "feedback info";
+				}
+				try {
+					await fn();
+					await load();
+				} catch (err) {
+					if (feedback) {
+						feedback.textContent = err.message;
+						feedback.className = "feedback error";
+					}
+				}
+			}
+
+			rowsEl?.addEventListener("click", (e) => {
+				const assign = e.target.closest("[data-assign]");
+				const ready = e.target.closest("[data-ready]");
+				const deliver = e.target.closest("[data-deliver]");
+				if (assign) {
+					runAction(() => assignOrder(Number(assign.dataset.id)), "Asignando pedido");
+				} else if (ready) {
+					runAction(() => markOrderReady(Number(ready.dataset.id)), "Marcando listo");
+				} else if (deliver) {
+					const pin = window.prompt("Ingresa el PIN de seguridad del cliente:");
+					if (pin) runAction(() => deliverOrder(Number(deliver.dataset.id), pin.trim()), "Entregando pedido");
+				}
+			});
+
+			filterSel?.addEventListener("change", () => {
+				page = 0;
+				load();
+			});
+			prevBtn?.addEventListener("click", () => {
+				if (page > 0) {
+					page--;
+					load();
+				}
+			});
+			nextBtn?.addEventListener("click", () => {
+				if (page < totalPages - 1) {
+					page++;
+					load();
+				}
+			});
+
+			load();
+		}
+	</script>
+
+	<style>
+		.filter {
+			max-width: 280px;
+			margin-bottom: 1.5rem;
+		}
+		.act {
+			font-size: 0.82rem;
+			padding: 0.3rem 0.7rem;
+		}
+		.muted {
+			color: var(--muted);
+		}
+		.pager {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 1rem;
+			margin-top: 1.5rem;
+		}
+		.page-info {
+			color: var(--muted);
+			font-size: 0.88rem;
+		}
+	</style>
+</Layout>

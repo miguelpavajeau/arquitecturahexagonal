@@ -1,0 +1,132 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Restaurantes">
+	<h1>Restaurantes</h1>
+	<p class="subtitle">Registra un nuevo restaurante y asígnale un propietario existente.</p>
+
+	<div class="grid">
+		<section class="card">
+			<h2>Crear restaurante</h2>
+			<form id="restaurant-form">
+				<label>Nombre<input type="text" id="nombre" required /></label>
+				<label>NIT<input type="number" id="nit" required /></label>
+				<label>Dirección<input type="text" id="direccion" required /></label>
+				<label>Teléfono<input type="text" id="telefono" placeholder="+573001112233" required /></label>
+				<label>URL del logo<input type="text" id="urlLogo" placeholder="https://… o ruta del logo" required /></label>
+				<label>
+					Propietario
+					<select id="idPropietario" required>
+						<option value="">Cargando propietarios…</option>
+					</select>
+				</label>
+				<button type="submit" class="btn">Crear restaurante</button>
+			</form>
+			<p id="feedback" class="feedback"></p>
+		</section>
+
+		<section class="card">
+			<h2>Restaurantes registrados</h2>
+			<div id="restaurants-table"><p class="feedback info">Cargando…</p></div>
+		</section>
+	</div>
+
+	<script>
+		import { requireRole, createRestaurant, getRestaurants, getUsers } from "../lib/api.js";
+
+		if (requireRole(["ADMINISTRADOR"])) {
+			const form = document.getElementById("restaurant-form") as HTMLFormElement;
+			const feedback = document.getElementById("feedback") as HTMLParagraphElement;
+			const button = form.querySelector("button") as HTMLButtonElement;
+			const select = document.getElementById("idPropietario") as HTMLSelectElement;
+			const tableContainer = document.getElementById("restaurants-table") as HTMLDivElement;
+			const val = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+
+			// Llena el desplegable solo con usuarios cuyo rol es PROPIETARIO.
+			async function loadPropietarios() {
+				try {
+					const users = await getUsers();
+					const propietarios = (Array.isArray(users) ? users : []).filter(
+						(u: any) => u.rol === "PROPIETARIO",
+					);
+					if (propietarios.length === 0) {
+						select.innerHTML = `<option value="">No hay propietarios — créalos en Usuarios</option>`;
+						return;
+					}
+					select.innerHTML =
+						`<option value="">Selecciona un propietario…</option>` +
+						propietarios
+							.map(
+								(u: any) =>
+									`<option value="${u.id}">#${u.id} · ${u.nombre} ${u.apellido} (${u.correo})</option>`,
+							)
+							.join("");
+				} catch (error) {
+					select.innerHTML = `<option value="">${(error as Error).message}</option>`;
+				}
+			}
+
+			async function loadRestaurants() {
+				try {
+					const restaurants = await getRestaurants();
+					if (!Array.isArray(restaurants) || restaurants.length === 0) {
+						tableContainer.innerHTML = `<p class="feedback info">No hay restaurantes todavía.</p>`;
+						return;
+					}
+					tableContainer.innerHTML = `
+						<table>
+							<thead><tr><th>ID</th><th>Nombre</th><th>NIT</th><th>Teléfono</th><th>Propietario</th></tr></thead>
+							<tbody>
+								${restaurants
+									.map(
+										(r: any) => `<tr>
+											<td><span class="badge">${r.id ?? "—"}</span></td>
+											<td>${r.nombre ?? ""}</td>
+											<td>${r.nit ?? ""}</td>
+											<td>${r.telefono ?? ""}</td>
+											<td><span class="badge">${r.idPropietario ?? "—"}</span></td>
+										</tr>`,
+									)
+									.join("")}
+							</tbody>
+						</table>`;
+				} catch (error) {
+					tableContainer.innerHTML = `<p class="feedback error">${(error as Error).message}</p>`;
+				}
+			}
+
+			form.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				feedback.className = "feedback info";
+				feedback.textContent = "Enviando…";
+				button.disabled = true;
+
+				const payload = {
+					nombre: val("nombre"),
+					nit: Number(val("nit")),
+					direccion: val("direccion"),
+					telefono: val("telefono"),
+					urlLogo: val("urlLogo"),
+					idPropietario: Number(select.value),
+				};
+
+				try {
+					await createRestaurant(payload);
+					feedback.className = "feedback success";
+					feedback.textContent = "Restaurante creado con éxito.";
+					form.reset();
+					loadRestaurants();
+				} catch (error) {
+					feedback.className = "feedback error";
+					feedback.textContent = (error as Error).message;
+				} finally {
+					button.disabled = false;
+				}
+			});
+
+			loadPropietarios();
+			loadRestaurants();
+		}
+	</script>
+</Layout>
