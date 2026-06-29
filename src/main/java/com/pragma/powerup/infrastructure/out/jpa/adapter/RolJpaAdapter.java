@@ -31,4 +31,10 @@ public class RolJpaAdapter implements IRolePersistencePort {
         }
         return roleEntityMapper.toRoleModelList(entityList);
     }
+
+    @Override
+    public RoleModel findRoleByName(String nombre) {
+        RoleEntity roleEntity = roleRepository.findByNombre(nombre);
+        return roleEntity == null ? null : roleEntityMapper.toRoleModel(roleEntity);
+    }
 }

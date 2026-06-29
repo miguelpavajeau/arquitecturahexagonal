@@ -12,9 +12,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -30,9 +31,33 @@ public class UserRestController {
             @ApiResponse(responseCode = "409", description = "User already exists", content = @Content)
     })
 
-    @PostMapping("/")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PostMapping
     public ResponseEntity<Void> saveUser(@Valid @RequestBody UserRequestDto userRequestDto) {
         userHandler.saveUser(userRequestDto);
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "Add a new employee (owner only)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Employee created", content = @Content),
+            @ApiResponse(responseCode = "409", description = "User already exists", content = @Content)
+    })
+    @PreAuthorize("hasRole('PROPIETARIO')")
+    @PostMapping("/employee")
+    public ResponseEntity<Void> saveEmployee(@Valid @RequestBody UserRequestDto userRequestDto) {
+        userHandler.saveEmployee(userRequestDto);
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "Self-register a new client (public)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Client created", content = @Content),
+            @ApiResponse(responseCode = "409", description = "User already exists", content = @Content)
+    })
+    @PostMapping("/client")
+    public ResponseEntity<Void> saveClient(@Valid @RequestBody UserRequestDto userRequestDto) {
+        userHandler.saveClient(userRequestDto);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
@@ -43,7 +68,8 @@ public class UserRestController {
                             array = @ArraySchema(schema = @Schema(implementation = UserResponseDto.class)))),
             @ApiResponse(responseCode = "404", description = "No data found", content = @Content)
     })
-    @GetMapping("/")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @GetMapping
     public ResponseEntity<List<UserResponseDto>> getAllUsers() {
         return ResponseEntity.ok(userHandler.getAllUsers());
     }
