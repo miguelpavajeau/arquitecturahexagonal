@@ -5,8 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class RoleResponseDto {
-    private Long id;
-    private String nombre;
-    private String descripcion;
+public class OrderDishResponseDto {
+    private Long idPlato;
+    private Integer cantidad;
 }
