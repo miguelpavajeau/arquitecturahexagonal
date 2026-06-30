@@ -1,0 +1,136 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Restaurantes">
+	<h1>Restaurantes</h1>
+	<p class="subtitle">Elige un restaurante para ver su menú</p>
+
+	<div class="grid" data-list></div>
+	<p class="feedback" data-feedback></p>
+
+	<div class="pager" data-pager hidden>
+		<button type="button" class="btn-ghost" data-prev>← Anterior</button>
+		<span class="page-info" data-page-info></span>
+		<button type="button" class="btn-ghost" data-next>Siguiente →</button>
+	</div>
+
+	<script>
+		import { requireRole, listRestaurants } from "../lib/api.js";
+
+		const session = requireRole(["CLIENTE"]);
+		if (session) {
+			const list = document.querySelector("[data-list]");
+			const feedback = document.querySelector("[data-feedback]");
+			const pager = document.querySelector("[data-pager]");
+			const pageInfo = document.querySelector("[data-page-info]");
+			const prevBtn = document.querySelector("[data-prev]");
+			const nextBtn = document.querySelector("[data-next]");
+
+			const SIZE = 6;
+			let page = 0;
+			let totalPages = 1;
+
+			async function load() {
+				if (feedback) {
+					feedback.textContent = "Cargando…";
+					feedback.className = "feedback info";
+				}
+				try {
+					const data = await listRestaurants(page, SIZE);
+					totalPages = data.totalPages || 1;
+					render(data.content || []);
+					if (feedback) feedback.textContent = "";
+				} catch (err) {
+					if (feedback) {
+						feedback.textContent = err.message;
+						feedback.className = "feedback error";
+					}
+				}
+			}
+
+			function render(restaurants) {
+				if (!list) return;
+				if (restaurants.length === 0) {
+					list.innerHTML = "";
+					if (feedback) {
+						feedback.textContent = "No hay restaurantes registrados.";
+						feedback.className = "feedback info";
+					}
+					if (pager) pager.hidden = true;
+					return;
+				}
+				list.innerHTML = restaurants
+					.map((r) => {
+						const href = `/menu?id=${r.id}&nombre=${encodeURIComponent(r.nombre)}`;
+						return `
+							<a class="card resto" href="${href}">
+								<img src="${r.urlLogo}" alt="${r.nombre}" onerror="this.style.display='none'" />
+								<h2>${r.nombre}</h2>
+							</a>`;
+					})
+					.join("");
+
+				if (pager && pageInfo) {
+					pager.hidden = totalPages <= 1;
+					pageInfo.textContent = `Página ${page + 1} de ${totalPages}`;
+					if (prevBtn) prevBtn.disabled = page <= 0;
+					if (nextBtn) nextBtn.disabled = page >= totalPages - 1;
+				}
+			}
+
+			prevBtn?.addEventListener("click", () => {
+				if (page > 0) {
+					page--;
+					load();
+				}
+			});
+			nextBtn?.addEventListener("click", () => {
+				if (page < totalPages - 1) {
+					page++;
+					load();
+				}
+			});
+
+			load();
+		}
+	</script>
+
+	<style>
+		.resto {
+			color: var(--text);
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.75rem;
+			text-align: center;
+			transition: border-color 0.15s ease;
+		}
+		.resto:hover {
+			border-color: var(--primary);
+		}
+		.resto img {
+			width: 72px;
+			height: 72px;
+			object-fit: cover;
+			border-radius: 50%;
+			border: 1px solid var(--border);
+			background: var(--surface-2);
+		}
+		.resto h2 {
+			margin: 0;
+			font-size: 1.05rem;
+		}
+		.pager {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 1rem;
+			margin-top: 1.75rem;
+		}
+		.page-info {
+			color: var(--muted);
+			font-size: 0.88rem;
+		}
+	</style>
+</Layout>

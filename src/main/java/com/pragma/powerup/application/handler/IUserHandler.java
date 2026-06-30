@@ -9,5 +9,9 @@ public interface IUserHandler {
 
     void saveUser(UserRequestDto userRequestDto);
 
+    void saveEmployee(UserRequestDto userRequestDto);
+
+    void saveClient(UserRequestDto userRequestDto);
+
     List<UserResponseDto> getAllUsers();
 }

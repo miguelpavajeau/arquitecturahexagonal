@@ -11,7 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/categories")
@@ -25,7 +25,7 @@ public class CategoryRestController {
             @ApiResponse(responseCode = "201", description = "Category created", content = @Content),
             @ApiResponse(responseCode = "409", description = "Category already exists", content = @Content)
     })
-    @PostMapping("/")
+    @PostMapping
     public ResponseEntity<Void> saveCategory(@Valid @RequestBody CategoryRequestDto categoryRequestDto) {
         categoryHandler.saveCategory(categoryRequestDto);
         return new ResponseEntity<>(HttpStatus.CREATED);
@@ -36,7 +36,7 @@ public class CategoryRestController {
             @ApiResponse(responseCode = "200", description = "All categories returned", content = @Content),
             @ApiResponse(responseCode = "404", description = "No data found", content = @Content)
     })
-    @GetMapping("/")
+    @GetMapping
     public ResponseEntity<?> getAllCategories() {
         return ResponseEntity.ok(categoryHandler.getAllCategories());
     }

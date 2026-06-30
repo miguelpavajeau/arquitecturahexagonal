@@ -1,13 +1,13 @@
 plugins {
-    id 'org.springframework.boot' version '2.7.3'
-    id 'io.spring.dependency-management' version '1.0.13.RELEASE'
+    id 'org.springframework.boot' version '3.3.0'
+    id 'io.spring.dependency-management' version '1.1.4'
     id 'java'
     id 'jacoco'
 }
 
 group = 'com.pragma.powerup'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '11'
+sourceCompatibility = '21'
 
 configurations {
     compileOnly {
@@ -20,24 +20,30 @@ repositories {
 }
 
 ext {
-    springBootVersion = "2.7.3"
-    mapstructVersion = "1.5.2.Final"
-    lombokVersion = "1.18.24"
+    springBootVersion = "3.3.0"
+    mapstructVersion = "1.5.5.Final"
+    lombokVersion = "1.18.34"
     lombokMapstructBindingVersion = "0.2.0"
-    mySqlConnectorVersion = "8.0.32"
-    openApiVersion = "1.6.11"
+    mySqlConnectorVersion = "8.0.33"
+    openApiVersion = "2.3.0"
+    jjwtVersion = "0.12.3"
+    twilioVersion = "10.9.2"
 }
 
 dependencies {
     implementation "org.springframework.boot:spring-boot-starter-data-jpa:${springBootVersion}"
     implementation "org.springframework.boot:spring-boot-starter-validation:${springBootVersion}"
     implementation "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
-//    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.security:spring-security-crypto:5.6.1'
+    implementation "org.springframework.boot:spring-boot-starter-security:${springBootVersion}"
+    implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
+    runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
+    runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
     developmentOnly "org.springframework.boot:spring-boot-devtools:${springBootVersion}"
     testImplementation "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"
+    testImplementation "org.springframework.security:spring-security-test"
 
-    runtimeOnly "mysql:mysql-connector-java:${mySqlConnectorVersion}"
+    runtimeOnly "com.mysql:mysql-connector-j:${mySqlConnectorVersion}"
+    testRuntimeOnly "com.h2database:h2"
 
     implementation "org.mapstruct:mapstruct:${mapstructVersion}"
     compileOnly "org.projectlombok:lombok:${lombokVersion}"
@@ -45,8 +51,9 @@ dependencies {
     annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
-    implementation "org.springdoc:springdoc-openapi-ui:${openApiVersion}"
-    implementation "org.springdoc:springdoc-openapi-webflux-ui:${openApiVersion}"
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${openApiVersion}"
+
+    implementation "com.twilio.sdk:twilio:${twilioVersion}"
 }
 
 tasks.named('test') {

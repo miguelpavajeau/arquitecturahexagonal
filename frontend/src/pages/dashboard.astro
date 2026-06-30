@@ -1,0 +1,101 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Inicio">
+	<h1>Hola, <span data-user-name>…</span></h1>
+	<p class="subtitle">Esto es lo que puedes hacer con tu rol <span class="badge" data-user-role></span></p>
+
+	<div class="grid" data-actions></div>
+
+	<script>
+		import { requireRole } from "../lib/api.js";
+
+		const session = requireRole();
+		if (session) {
+			const nameEl = document.querySelector("[data-user-name]");
+			const roleEl = document.querySelector("[data-user-role]");
+			if (nameEl) nameEl.textContent = session.correo;
+			if (roleEl) roleEl.textContent = session.role;
+
+			const cards: { href: string; title: string; desc: string; roles?: string[] }[] = [
+				{
+					href: "/usuarios",
+					title: "👤 Usuarios",
+					desc: "Crea propietarios y consulta los usuarios registrados.",
+					roles: ["ADMINISTRADOR"],
+				},
+				{
+					href: "/restaurantes",
+					title: "🏪 Restaurantes",
+					desc: "Registra nuevos restaurantes y asígnales un propietario.",
+					roles: ["ADMINISTRADOR"],
+				},
+				{
+					href: "/categorias",
+					title: "🏷️ Categorías",
+					desc: "Administra las categorías de los platos.",
+				},
+				{
+					href: "/platos",
+					title: "🍽️ Platos",
+					desc: "Crea, actualiza y habilita los platos de tu restaurante.",
+					roles: ["PROPIETARIO"],
+				},
+				{
+					href: "/empleados",
+					title: "🧑‍🍳 Empleados",
+					desc: "Registra los empleados de tu restaurante.",
+					roles: ["PROPIETARIO"],
+				},
+				{
+					href: "/restaurantes-cliente",
+					title: "🍴 Restaurantes",
+					desc: "Explora los restaurantes y descubre sus menús.",
+					roles: ["CLIENTE"],
+				},
+				{
+					href: "/mi-pedido",
+					title: "🧾 Mi pedido",
+					desc: "Consulta el estado de tu pedido y cancélalo si sigue pendiente.",
+					roles: ["CLIENTE"],
+				},
+				{
+					href: "/pedidos",
+					title: "📋 Pedidos",
+					desc: "Asígnate pedidos, prepáralos y entrégalos a los clientes.",
+					roles: ["EMPLEADO"],
+				},
+			];
+
+			const container = document.querySelector("[data-actions]");
+			if (container) {
+				container.innerHTML = cards
+					.filter((card) => !card.roles || card.roles.includes(session.role))
+					.map(
+						(card) => `
+							<a class="card action" href="${card.href}">
+								<h2>${card.title}</h2>
+								<p>${card.desc}</p>
+							</a>`,
+					)
+					.join("");
+			}
+		}
+	</script>
+
+	<style>
+		.action {
+			color: var(--text);
+			transition: border-color 0.15s ease;
+		}
+		.action:hover {
+			border-color: var(--primary);
+		}
+		.action p {
+			color: var(--muted);
+			margin: 0;
+			font-size: 0.9rem;
+		}
+	</style>
+</Layout>

@@ -9,4 +9,6 @@ public interface IRolePersistencePort {
     RoleModel saveRole(RoleModel roleModel);
 
     List<RoleModel> getAllRoles();
+
+    RoleModel findRoleByName(String nombre);
 }

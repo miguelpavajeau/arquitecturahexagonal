@@ -28,7 +28,7 @@ public class RoleRestController {
             @ApiResponse(responseCode = "201", description = "Rol created", content = @Content),
             @ApiResponse(responseCode = "409", description = "Rol already exists", content = @Content)
     })
-    @PostMapping("/")
+    @PostMapping
     public ResponseEntity<Void> saveRole(@RequestBody RoleRequestDto roleRequestDto) {
         roleHandler.saveRole(roleRequestDto);
         return new ResponseEntity<>(HttpStatus.CREATED);
@@ -41,7 +41,7 @@ public class RoleRestController {
                             array = @ArraySchema(schema = @Schema(implementation = RoleResponseDto.class)))),
             @ApiResponse(responseCode = "404", description = "No data found", content = @Content)
     })
-    @GetMapping("/")
+    @GetMapping
     public ResponseEntity<List<RoleResponseDto>> getAllRoles() {
         return ResponseEntity.ok(roleHandler.getAllRoles());
     }

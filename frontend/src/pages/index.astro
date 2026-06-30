@@ -1,0 +1,77 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Iniciar sesión" bare>
+	<div class="login">
+		<div class="login-brand">⚡ PowerUp</div>
+		<div class="card">
+			<h1>Iniciar sesión</h1>
+			<p class="subtitle">Plazoleta de comidas</p>
+			<form id="login-form">
+				<label>
+					Correo
+					<input type="email" id="correo" autocomplete="username" required />
+				</label>
+				<label>
+					Clave
+					<input type="password" id="clave" autocomplete="current-password" required />
+				</label>
+				<button type="submit" class="btn">Entrar</button>
+			</form>
+			<p id="feedback" class="feedback"></p>
+			<p class="alt">¿No tienes cuenta? <a href="/registro">Regístrate como cliente</a></p>
+		</div>
+	</div>
+
+	<script>
+		import { login, saveToken, getSession } from "../lib/api.js";
+
+		// Si ya hay sesión válida, evita volver a mostrar el login.
+		if (getSession()) {
+			window.location.href = "/dashboard";
+		}
+
+		const form = document.getElementById("login-form") as HTMLFormElement;
+		const feedback = document.getElementById("feedback") as HTMLParagraphElement;
+		const button = form.querySelector("button") as HTMLButtonElement;
+
+		form.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			feedback.className = "feedback";
+			feedback.textContent = "";
+			button.disabled = true;
+
+			const correo = (document.getElementById("correo") as HTMLInputElement).value;
+			const clave = (document.getElementById("clave") as HTMLInputElement).value;
+
+			try {
+				const token = await login(correo, clave);
+				saveToken(token);
+				window.location.href = "/dashboard";
+			} catch (error) {
+				feedback.className = "feedback error";
+				feedback.textContent = (error as Error).message;
+				button.disabled = false;
+			}
+		});
+	</script>
+
+	<style>
+		.login {
+			width: 100%;
+			max-width: 380px;
+		}
+		.login-brand {
+			text-align: center;
+			font-size: 1.5rem;
+			font-weight: 700;
+			margin-bottom: 1.25rem;
+		}
+		.alt {
+			margin: 1rem 0 0;
+			text-align: center;
+			font-size: 0.88rem;
+		}
+	</style>
+</Layout>
